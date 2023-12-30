@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 
 
@@ -46,7 +48,7 @@ def digitize_vectors(
     vectors: torch.Tensor,
     reference_magnitudes: torch.Tensor,
     reference_directions: torch.Tensor,
-) -> dict:
+) -> Dict[str, torch.Tensor]:
     magnitudes = torch.norm(vectors, p=2, dim=1, keepdim=True)
     magnitude_offsets, magnitude_indices = (
         (magnitudes - reference_magnitudes).abs().min(dim=1)
