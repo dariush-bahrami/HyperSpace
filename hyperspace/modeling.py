@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .datatypes import HyperSpaceResult
+from .datatypes import DigitizationResult, HyperSpaceResult
 from .digitazation import (
     digitize_vectors,
     get_reference_directions,
@@ -16,7 +16,7 @@ class HyperSpace(nn.Module):
         num_features: int,
         num_magnitude_subsections: int,
         num_direction_bisections: int,
-    ):
+    ) -> None:
         super().__init__()
         self.num_features = num_features
         self.num_magnitude_subsections = num_magnitude_subsections
@@ -41,10 +41,14 @@ class HyperSpace(nn.Module):
         )
 
     @property
-    def probabilities(self):
+    def probabilities(self) -> torch.Tensor:
         return self.counts / max(1, self.counts.sum())  # avoid divide by zero
 
-    def sample(self, num_samples: int, generator=None):
+    def sample(
+        self,
+        num_samples: int,
+        generator: torch.Generator = None,
+    ) -> torch.Tensor:
         indices = torch.multinomial(
             self.probabilities.view(-1),
             num_samples,
@@ -59,27 +63,30 @@ class HyperSpace(nn.Module):
         samples = samples * self.vector_normalizer.std() + self.vector_normalizer.mean()
         return samples
 
-    def update_stats(self, vectors: torch.Tensor):
+    def update_stats(self, vectors: torch.Tensor) -> None:
         if self.training:
             self.vector_normalizer(vectors)
         else:
             raise Exception("HyperSpace must be in training mode to update stats")
 
-    def update_counts(self, vectors):
+    def update_counts(self, vectors: torch.Tensor) -> DigitizationResult:
         if self.training:
             vectors = self.vector_normalizer(vectors)
-            magnitude_indices, _, direction_indices, _ = digitize_vectors(
+            digitization_result = digitize_vectors(
                 vectors,
                 self.reference_magnitudes,
                 self.reference_directions,
             )
 
+            magnitude_indices, _, direction_indices, _ = digitization_result
             for i, j in zip(magnitude_indices, direction_indices):
                 self.counts[i, j] += 1
+
+            return digitization_result
         else:
             raise Exception("HyperSpace must be in training mode to update counts")
 
-    def forward(self, vectors):
+    def forward(self, vectors: torch.Tensor) -> HyperSpaceResult:
         vectors = self.vector_normalizer(vectors)
 
         magnitude_indices, _, direction_indices, _ = digitize_vectors(
