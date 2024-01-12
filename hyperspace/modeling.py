@@ -67,7 +67,7 @@ class HyperSpace(nn.Module):
         if self.training:
             self.vector_normalizer(vectors)
         else:
-            raise Exception("HyperSpace must be in training mode to update stats")
+            raise RuntimeError("HyperSpace must be in training mode to update stats")
 
     def update_counts(self, vectors: torch.Tensor) -> DigitizationResult:
         if self.training:
@@ -84,7 +84,7 @@ class HyperSpace(nn.Module):
 
             return digitization_result
         else:
-            raise Exception("HyperSpace must be in training mode to update counts")
+            raise RuntimeError("HyperSpace must be in training mode to update counts")
 
     def forward(self, vectors: torch.Tensor) -> HyperSpaceResult:
         vectors = self.vector_normalizer(vectors)
