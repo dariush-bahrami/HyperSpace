@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 
 from .datatypes import DigitizationResult
