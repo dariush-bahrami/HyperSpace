@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from .datatypes import HyperSpaceResult
 from .digitazation import (
     digitize_vectors,
     get_reference_directions,
@@ -58,10 +59,6 @@ class HyperSpace(nn.Module):
         samples = samples * self.vector_normalizer.std() + self.vector_normalizer.mean()
         return samples
 
-    @property
-    def threshold(self):
-        return self.probabilities[self.probabilities > 0].min()
-
     def update_stats(self, vectors: torch.Tensor):
         if self.training:
             self.vector_normalizer(vectors)
@@ -71,13 +68,11 @@ class HyperSpace(nn.Module):
     def update_counts(self, vectors):
         if self.training:
             vectors = self.vector_normalizer(vectors)
-            digitization_result = digitize_vectors(
+            magnitude_indices, _, direction_indices, _ = digitize_vectors(
                 vectors,
                 self.reference_magnitudes,
                 self.reference_directions,
             )
-            direction_indices = digitization_result["direction_indices"]
-            magnitude_indices = digitization_result["magnitude_indices"]
 
             for i, j in zip(direction_indices, magnitude_indices):
                 self.counts[i, j] += 1
@@ -87,13 +82,29 @@ class HyperSpace(nn.Module):
     def forward(self, vectors):
         vectors = self.vector_normalizer(vectors)
 
-        digitization_result = digitize_vectors(
+        magnitude_indices, _, direction_indices, _ = digitize_vectors(
             vectors,
             self.reference_magnitudes,
             self.reference_directions,
         )
-        direction_indices = digitization_result["direction_indices"]
-        magnitude_indices = digitization_result["magnitude_indices"]
 
-        probabilities = self.probabilities[direction_indices, magnitude_indices]
-        return probabilities
+        space_counts = self.counts
+        non_zero_space_counts = space_counts[space_counts > 0]
+        total_counts = non_zero_space_counts.sum()
+        batch_counts = self.counts[direction_indices, magnitude_indices]
+        probabilities = batch_counts / max(1, total_counts)
+
+        ranks = []
+        for c in batch_counts:
+            cumulative_counts = (
+                non_zero_space_counts[non_zero_space_counts <= c]
+            ).sum()
+            rank = (cumulative_counts - (0.5 * c)) / max(1, total_counts)
+            ranks.append(rank)
+        ranks = torch.stack(ranks)
+
+        return HyperSpaceResult(
+            counts=batch_counts,
+            probabilities=probabilities,
+            ranks=ranks,
+        )
