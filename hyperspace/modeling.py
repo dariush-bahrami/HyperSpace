@@ -34,8 +34,8 @@ class HyperSpace(nn.Module):
         self.register_buffer(
             "counts",
             torch.zeros(
-                self.reference_directions.shape[0],
                 self.reference_magnitudes.shape[0],
+                self.reference_directions.shape[0],
                 dtype=torch.int64,
             ),
         )
@@ -74,7 +74,7 @@ class HyperSpace(nn.Module):
                 self.reference_directions,
             )
 
-            for i, j in zip(direction_indices, magnitude_indices):
+            for i, j in zip(magnitude_indices, direction_indices):
                 self.counts[i, j] += 1
         else:
             raise Exception("HyperSpace must be in training mode to update counts")
@@ -91,7 +91,7 @@ class HyperSpace(nn.Module):
         space_counts = self.counts
         non_zero_space_counts = space_counts[space_counts > 0]
         total_counts = non_zero_space_counts.sum()
-        batch_counts = self.counts[direction_indices, magnitude_indices]
+        batch_counts = self.counts[magnitude_indices, direction_indices]
         probabilities = batch_counts / max(1, total_counts)
 
         ranks = []
