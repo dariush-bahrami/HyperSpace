@@ -86,6 +86,14 @@ class HyperSpace(nn.Module):
         else:
             raise RuntimeError("HyperSpace must be in training mode to update counts")
 
+    def digitize(self, vectors: torch.Tensor) -> DigitizationResult:
+        vectors = self.vector_normalizer(vectors)
+        return digitize_vectors(
+            vectors,
+            self.reference_magnitudes,
+            self.reference_directions,
+        )
+
     def forward(self, vectors: torch.Tensor) -> HyperSpaceResult:
         vectors = self.vector_normalizer(vectors)
 
