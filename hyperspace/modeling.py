@@ -16,6 +16,7 @@ class HyperSpace(nn.Module):
         num_features: int,
         num_magnitude_subsections: int,
         num_direction_bisections: int,
+        eps: float = 1e-5,
     ) -> None:
         super().__init__()
         self.num_features = num_features
@@ -29,7 +30,7 @@ class HyperSpace(nn.Module):
             "reference_directions",
             get_reference_directions(num_features, num_direction_bisections),
         )
-        self.vector_normalizer = VectorNormalizer(num_features)
+        self.vector_normalizer = VectorNormalizer(num_features, eps=eps)
 
         self.register_buffer(
             "counts",
